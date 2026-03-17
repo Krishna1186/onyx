@@ -158,25 +158,30 @@ function Main({ ccPairId }: { ccPairId: number }) {
     mutate(buildCCPairInfoUrl(ccPairId));
   }, [ccPairId]);
 
+  const finishConnectorDeletion = useCallback(() => {
+    router.push("/admin/indexing/status?message=connector-deleted");
+  }, [router]);
+
   const shouldConfirmConnectorDeletion = true;
 
-  const scheduleConnectorDeletion = useCallback(async () => {
+  const scheduleConnectorDeletion = useCallback(() => {
     if (!ccPair) return;
     if (isSchedulingConnectorDeletionRef.current) return;
     isSchedulingConnectorDeletionRef.current = true;
 
-    try {
-      await deleteCCPair(ccPair.connector.id, ccPair.credential.id, () =>
-        mutate(buildCCPairInfoUrl(ccPair.id))
-      );
-      refresh();
-    } catch (error) {
-      console.error("Error deleting connector:", error);
-    } finally {
-      setShowDeleteConnectorConfirmModal(false);
-      isSchedulingConnectorDeletionRef.current = false;
-    }
-  }, [ccPair, refresh]);
+    deleteCCPair(ccPair.connector.id, ccPair.credential.id, () =>
+      mutate(buildCCPairInfoUrl(ccPair.id))
+    )
+      .then(() => {
+        finishConnectorDeletion();
+      })
+      .catch((error) => {
+        toast.error(
+          "Failed to schedule deletion of connector - " + error.message
+        );
+        isSchedulingConnectorDeletionRef.current = false;
+      });
+  }, [ccPair, finishConnectorDeletion]);
 
   const latestIndexAttempt = indexAttempts?.[0];
   const canManageInlineFileConnectorFiles =
@@ -193,10 +198,6 @@ function Main({ ccPairId }: { ccPairId: number }) {
     !indexAttemptErrors?.items?.some(
       (error) => error.index_attempt_id === latestIndexAttempt?.id
     );
-
-  const finishConnectorDeletion = useCallback(() => {
-    router.push("/admin/indexing/status?message=connector-deleted");
-  }, [router]);
 
   const handleStatusUpdate = async (
     newStatus: ConnectorCredentialPairStatus
