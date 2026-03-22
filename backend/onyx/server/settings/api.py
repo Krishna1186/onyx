@@ -10,6 +10,7 @@ from onyx.auth.users import current_admin_user
 from onyx.auth.users import current_user
 from onyx.auth.users import is_user_admin
 from onyx.configs.app_configs import DISABLE_VECTOR_DB
+from onyx.configs.app_configs import MAX_ALLOWED_UPLOAD_SIZE_MB
 from onyx.configs.constants import KV_REINDEX_KEY
 from onyx.configs.constants import NotificationType
 from onyx.db.engine.sql_engine import get_session
@@ -17,6 +18,8 @@ from onyx.db.models import User
 from onyx.db.notification import dismiss_all_notifications
 from onyx.db.notification import get_notifications
 from onyx.db.notification import update_notification_last_shown
+from onyx.error_handling.error_codes import OnyxErrorCode
+from onyx.error_handling.exceptions import OnyxError
 from onyx.key_value_store.factory import get_kv_store
 from onyx.key_value_store.interface import KvKeyNotFoundError
 from onyx.server.features.build.utils import is_onyx_craft_enabled
@@ -40,6 +43,15 @@ basic_router = APIRouter(prefix="/settings")
 def admin_put_settings(
     settings: Settings, _: User = Depends(current_admin_user)
 ) -> None:
+    if (
+        settings.user_file_max_upload_size_mb is not None
+        and settings.user_file_max_upload_size_mb > 0
+        and settings.user_file_max_upload_size_mb > MAX_ALLOWED_UPLOAD_SIZE_MB
+    ):
+        raise OnyxError(
+            OnyxErrorCode.INVALID_INPUT,
+            f"File upload size limit cannot exceed {MAX_ALLOWED_UPLOAD_SIZE_MB} MB",
+        )
     store_settings(settings)
 
 
@@ -81,6 +93,7 @@ def fetch_settings(
         onyx_craft_enabled=onyx_craft_enabled_for_user,
         vector_db_enabled=not DISABLE_VECTOR_DB,
         version=onyx_version,
+        max_allowed_upload_size_mb=MAX_ALLOWED_UPLOAD_SIZE_MB,
     )
 
 
