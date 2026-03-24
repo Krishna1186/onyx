@@ -62,6 +62,9 @@ def _hook_to_response(hook: Hook, creator_email: str | None = None) -> HookRespo
         name=hook.name,
         hook_point=hook.hook_point,
         endpoint_url=hook.endpoint_url,
+        api_key_masked=(
+            hook.api_key.get_value(apply_mask=True) if hook.api_key else None
+        ),
         fail_strategy=hook.fail_strategy,
         timeout_seconds=hook.timeout_seconds,
         is_active=hook.is_active,
