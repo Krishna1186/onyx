@@ -176,6 +176,7 @@ function Main({ ccPairId }: { ccPairId: number }) {
         finishConnectorDeletion();
       })
       .catch((error) => {
+        console.error("Error deleting connector:", error);
         toast.error(
           "Failed to schedule deletion of connector - " + error.message
         );
